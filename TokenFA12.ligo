@@ -89,11 +89,27 @@ block {
     s.ledger[receiver] := dst;
 } with s
 
+///redeem wxtz_token and convert it(burn?) returning to trader as xtz wxtz_token issued == mutez_deposit)
 
-function redeem(const owner : address; )
-redeem wxtz_token and convert it(burn?) returning to trader as xtz wxtz_token issued == mutez_deposit)
+function redeem(const owner : address; const receiver : address; const value : nat; const s : storage) : storage is
+block {
+    const src : account = getAccount(owner, s);
+    const dst : account = getAccount(receiver, s);
+    if Tezos.sender = owner then skip else block {
+        const allowance : nat = case src.allowances[Tezos.sender] of 
+        | None -> 0n
+        | Some(v) -> v
+        end;
+        if allowance < value then failwith("NotPermitted") else 
+        src.allowances[Tezos.sender] := abs(allowance - value);
+    };
+    if src.balance < value then failwith("LowBalance") else skip;
+    src.balance := abs(src.balance - value);
+    dst.balance := src.balance + value;
+    s.ledger[owner] := src;
+    s.ledger[receiver] := dst;
+} with s
 
-///
 
 function getBalance(const owner : address; const receiver : contract(nat); const s : storage) : list(operation) is
 block {
